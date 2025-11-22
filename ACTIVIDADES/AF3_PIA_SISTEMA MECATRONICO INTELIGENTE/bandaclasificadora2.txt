@@ -1,0 +1,52 @@
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from sklearn.model_selection import train_test_split
+df = pd.read_csv("tcs_dataset.csv")   
+df.head()
+df["label"].value_counts()
+#normalización de RGB a r y g
+S = df["red"] + df["green"] + df["blue"]
+df = df[S > 0].copy()
+S = df["red"] + df["green"] + df["blue"]
+df["r"] = df["red"] / S
+df["g"] = df["green"] / S
+df[["red", "green", "blue", "r", "g", "label"]]
+X = df[["r", "g"]].values
+# y: 0 para Red, 1 para Green
+y = (df["label"] == "Green").astype(int).values
+
+print("Primeras X (r,g):")
+print(X[:5])
+
+print("\nPrimeras y (0=Red, 1=Green):")
+print(y[:5])
+clf = LogisticRegression()
+clf.fit(X, y)
+print("Modelo entrenado.")
+X_tr, X_te, y_tr, y_te = train_test_split(
+    X, y, test_size=0.4, random_state=42, stratify=y
+)
+y_pred_test = clf.predict(X_te)
+
+cm = confusion_matrix(y_te, y_pred_test)
+
+disp = ConfusionMatrixDisplay(confusion_matrix=cm,
+                              display_labels=["Rojo (0)", "Verde (1)"])
+fig = disp.plot(cmap="Blues")
+
+disp.ax_.set_xlabel("Etiqueta Predicha", fontsize=12)
+disp.ax_.set_ylabel("Etiqueta Real", fontsize=12)
+# Extrayendo pesos
+W0 = clf.coef_[0, 0]       # peso para r
+W1 = clf.coef_[0, 1]       # peso para g
+BIAS = clf.intercept_[0]   # término independiente
+
+print("W0 =", W0)
+print("W1 =", W1)
+print("BIAS =", BIAS)
+
+print("\nCódigo para pegar en Arduino:\n")
+print(f"float W0   = {W0:.4f}f;")
+print(f"float W1   = {W1:.4f}f;")
+print(f"float BIAS = {BIAS:.4f}f;")
